@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Real Cricket Game</title>
+<style>
+body {
+    margin: 0;
+    text-align: center;
+    font-family: Arial;
+    background: #0b6623;
+    color: white;
+}
+canvas {
+    display: block;
+    margin: auto;
+    background: linear-gradient(#87CEEB, #4CAF50);
+}
+button {
+    padding: 12px 25px;
+    font-size: 18px;
+    margin-top: 10px;
+}
+</style>
+</head>
+<body>
+
+<h1>🏏 Real Cricket Game</h1>
+<button onclick="hitBall()">Play Shot</button>
+
+<h3 id="result"></h3>
+<h3>Score: <span id="score">0</span></h3>
+<h3>Balls Left: <span id="balls">6</span></h3>
+
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+let canvas = document.getElementById("gameCanvas");
+let ctx = canvas.getContext("2d");
+
+let score = 0;
+let balls = 6;
+
+// BALL
+let ball = { x: 100, y: 250, vx: 0, vy: 0, hit:false };
+
+// BAT
+let bat = { x: 650, y: 250, angle:0, swinging:false };
+
+// BOWLER
+let bowler = { x: 50, y: 250, run:false };
+
+// FIELDER
+let fielder = { x: 500, y: 200, speed:2 };
+
+// GRAVITY
+let gravity = 0.3;
+
+// DRAW GROUND
+function drawGround(){
+    ctx.fillStyle="#2e8b57";
+    ctx.fillRect(0,250,800,150);
+
+    ctx.fillStyle="#c2b280";
+    ctx.fillRect(300,260,200,60);
+}
+
+// DRAW BATSMAN
+function drawPlayer(){
+    ctx.fillStyle="blue";
+    ctx.fillRect(640,215,20,50);
+
+    ctx.beginPath();
+    ctx.arc(650,200,15,0,Math.PI*2);
+    ctx.fillStyle="#ffcc99";
+    ctx.fill();
+}
+
+// DRAW BAT
+function drawBat(){
+    ctx.save();
+    ctx.translate(bat.x, bat.y);
+    ctx.rotate(bat.angle);
+    ctx.fillStyle="#8B4513";
+    ctx.fillRect(0,0,12,90);
+    ctx.restore();
+}
+
+// DRAW BALL
+function drawBall(){
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, 8, 0, Math.PI*2);
+    ctx.fillStyle="red";
+    ctx.fill();
+}
+
+// DRAW BOWLER
+function drawBowler(){
+    ctx.fillStyle="yellow";
+    ctx.fillRect(bowler.x,220,20,50);
+
+    ctx.beginPath();
+    ctx.arc(bowler.x+10,200,10,0,Math.PI*2);
+    ctx.fill();
+}
+
+// DRAW FIELDER
+function drawFielder(){
+    ctx.fillStyle="orange";
+    ctx.fillRect(fielder.x, fielder.y, 20, 50);
+
+    ctx.beginPath();
+    ctx.arc(fielder.x+10, fielder.y-20, 10, 0, Math.PI*2);
+    ctx.fill();
+}
+
+// BOWLER ACTION
+function bowl(){
+    bowler.x += 3;
+
+    if(bowler.x > 120 && ball.vx === 0){
+        ball.vx = 6;
+    }
+
+    if(bowler.x > 150){
+        bowler.x = 50;
+    }
+}
+
+// BALL PHYSICS
+function updateBall(){
+    ball.x += ball.vx;
+
+    if(ball.hit){
+        ball.y += ball.vy;
+        ball.vy += gravity;
+    }
+
+    // HIT DETECTION
+    if(ball.x > 630 && ball.x < 680 && bat.swinging && !ball.hit){
+        ball.hit = true;
+
+        let timing = Math.abs(ball.x - 655);
+
+        if(timing < 10){
+            ball.vx = 8; ball.vy = -8;
+            score += 6;
+            result.innerText="🔥 SIX!";
+        }
+        else if(timing < 25){
+            ball.vx = 6; ball.vy = -5;
+            score += 4;
+            result.innerText="FOUR!";
+        }
+        else{
+            ball.vx = 3; ball.vy = -2;
+            score += 1;
+            result.innerText="1 Run";
+        }
+        updateUI();
+    }
+
+    // FIELDER MOVES TOWARDS BALL
+    if(ball.hit){
+        if(fielder.x < ball.x) fielder.x += fielder.speed;
+        if(fielder.x > ball.x) fielder.x -= fielder.speed;
+
+        if(Math.abs(fielder.x - ball.x) < 20 && Math.abs(fielder.y - ball.y) < 30){
+            result.innerText="😱 CAUGHT! OUT!";
+            nextBall();
+        }
+    }
+
+    // END
+    if(ball.x > 800 || ball.y > 400){
+        nextBall();
+    }
+}
+
+// BAT ANIMATION
+function updateBat(){
+    if(bat.swinging){
+        bat.angle -= 0.15;
+        if(bat.angle < -1){
+            bat.angle = 0;
+            bat.swinging = false;
+        }
+    }
+}
+
+// NEXT BALL
+function nextBall(){
+    balls--;
+    updateUI();
+
+    if(balls<=0){
+        result.innerText += " | Game Over!";
+        return;
+    }
+
+    ball = { x:100, y:250, vx:0, vy:0, hit:false };
+}
+
+// UI
+function updateUI(){
+    scoreEl.innerText = score;
+    ballsEl.innerText = balls;
+}
+
+let scoreEl=document.getElementById("score");
+let ballsEl=document.getElementById("balls");
+let result=document.getElementById("result");
+
+// BUTTON
+function hitBall(){
+    if(balls<=0) return;
+    bat.swinging = true;
+}
+
+// LOOP
+function gameLoop(){
+    ctx.clearRect(0,0,800,400);
+
+    drawGround();
+    drawBowler();
+    drawPlayer();
+    drawBat();
+    drawBall();
+    drawFielder();
+
+    bowl();
+    updateBall();
+    updateBat();
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
